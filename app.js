@@ -615,7 +615,7 @@ function hydrateShell(info) {
   document.getElementById("app").style.display = "block";
   document.getElementById("message").style.display = "none";
   document.getElementById("debate-title").textContent = info.title || "(제목 없음)";
-  document.getElementById("nickname").textContent = getDisplayNickname(info.nickname);
+  document.getElementById("nickname").textContent = getAnonymousNickname();
   document.getElementById("status-copy").textContent = canParticipate
     ? "내 주장과 근거를 정리해 업로드한 뒤, 공개 트리에서 오가는 반박이 사람들의 판단을 어떻게 바꾸는지 볼 수 있습니다."
     : "읽기 전용 상태입니다. 공개된 주장과 반박 흐름 속에서 어떤 논리가 마음을 움직이는지 확인할 수 있습니다.";
@@ -1224,7 +1224,7 @@ function openParticipantsModal(claimId) {
     return (
       '<div class="activity-item">' +
       '  <div class="activity-item-title">' + escapeHtml(section.label) + "</div>" +
-      '  <div class="activity-item-copy">' + escapeHtml(section.names.length ? section.names.join(", ") : "없음") + "</div>" +
+      '  <div class="activity-item-copy">' + escapeHtml(section.copy) + "</div>" +
       "</div>"
     );
   }).join("");
@@ -1254,8 +1254,7 @@ function getVisibleClaims() {
 
   if (claimSearchQuery) {
     claims = claims.filter(function (claim) {
-      return (claim.text || "").toLowerCase().indexOf(claimSearchQuery) >= 0 ||
-        getDisplayNickname(claim.nickname).toLowerCase().indexOf(claimSearchQuery) >= 0;
+      return (claim.text || "").toLowerCase().indexOf(claimSearchQuery) >= 0;
     });
   }
 
@@ -1527,7 +1526,7 @@ function getLikeNicknames(targetType, targetId) {
   return allLikes.filter(function (item) {
     return item.targetType === targetType && item.targetId === targetId;
   }).map(function (item) {
-    return getDisplayNickname(item.nickname);
+    return getRawNickname(item.nickname);
   });
 }
 
@@ -1540,7 +1539,7 @@ function getClaimParticipantsSummary(claimId) {
     surrebuttals = surrebuttals.concat(getSurrebuttalsForRebuttal(rebuttal.id));
   });
 
-  var likeNames = uniqueNames(allLikes.filter(function (item) {
+  var likeNames = uniqueRawNames(allLikes.filter(function (item) {
     if (item.targetType === "claim" && item.targetId === claimId) return true;
     if (item.targetType === "evidence" && claim && (claim.evidence || []).some(function (evidence) { return evidence.id === item.targetId; })) return true;
     if (item.targetType === "rebuttal" && rebuttals.some(function (rebuttal) { return rebuttal.id === item.targetId; })) return true;
@@ -1552,20 +1551,20 @@ function getClaimParticipantsSummary(claimId) {
   }));
 
   return [
-    { label: "주장 작성", names: uniqueNames([claim ? claim.nickname : ""]) },
-    { label: "반박 작성", names: uniqueNames(rebuttals.map(function (item) { return item.nickname; })) },
-    { label: "재반박 작성", names: uniqueNames(surrebuttals.map(function (item) { return item.nickname; })) },
-    { label: "좋아요 누름", names: likeNames },
+    { label: "주장 작성", copy: formatAnonymousCount(uniqueRawNames([claim ? claim.nickname : ""]).length) },
+    { label: "반박 작성", copy: formatAnonymousCount(uniqueRawNames(rebuttals.map(function (item) { return item.nickname; })).length) },
+    { label: "재반박 작성", copy: formatAnonymousCount(uniqueRawNames(surrebuttals.map(function (item) { return item.nickname; })).length) },
+    { label: "좋아요 누름", copy: formatAnonymousCount(likeNames.length) },
   ];
 }
 
 function getSiteSummarySections() {
-  var claimAuthors = uniqueNames(allClaims.map(function (item) { return item.nickname; }));
-  var rebuttalAuthors = uniqueNames(allRebuttals.map(function (item) { return item.nickname; }));
-  var surrebuttalAuthors = uniqueNames(allSurrebuttals.map(function (item) { return item.nickname; }));
-  var persuasionAuthors = uniqueNames(allPersuasions.map(function (item) { return item.nickname; }));
-  var likeUsers = uniqueNames(allLikes.map(function (item) { return item.nickname; }));
-  var allParticipants = uniqueNames(
+  var claimAuthors = uniqueRawNames(allClaims.map(function (item) { return item.nickname; }));
+  var rebuttalAuthors = uniqueRawNames(allRebuttals.map(function (item) { return item.nickname; }));
+  var surrebuttalAuthors = uniqueRawNames(allSurrebuttals.map(function (item) { return item.nickname; }));
+  var persuasionAuthors = uniqueRawNames(allPersuasions.map(function (item) { return item.nickname; }));
+  var likeUsers = uniqueRawNames(allLikes.map(function (item) { return item.nickname; }));
+  var allParticipants = uniqueRawNames(
     claimAuthors
       .concat(rebuttalAuthors)
       .concat(surrebuttalAuthors)
@@ -1609,10 +1608,10 @@ function getSiteSummarySections() {
   ];
 }
 
-function uniqueNames(names) {
+function uniqueRawNames(names) {
   var seen = {};
   return (names || []).map(function (name) {
-    return getDisplayNickname(name);
+    return getRawNickname(name);
   }).filter(function (name) {
     if (!name || seen[name]) return false;
     seen[name] = true;
@@ -1884,8 +1883,20 @@ function formatDashboardDate(timestamp) {
   return yy + "." + mm + "." + dd + " " + hh + ":" + min + ampm;
 }
 
-function getDisplayNickname(nickname) {
+function getRawNickname(nickname) {
   return nickname || "사용자";
+}
+
+function getAnonymousNickname() {
+  return "익명 사용자";
+}
+
+function getDisplayNickname() {
+  return getAnonymousNickname();
+}
+
+function formatAnonymousCount(count) {
+  return count > 0 ? getAnonymousNickname() + " " + count + "명" : "없음";
 }
 
 function getClaimSideLabel(side) {
@@ -1907,7 +1918,7 @@ function renderLikeButton(targetType, targetId) {
     '    <span>좋아요 ' + count + "</span>" +
     "  </button>" +
     (names.length
-      ? '  <span class="like-names">' + escapeHtml(names.join(", ")) + "</span>"
+      ? '  <span class="like-names">' + escapeHtml(formatAnonymousCount(names.length)) + "</span>"
       : "") +
     "</div>"
   );
