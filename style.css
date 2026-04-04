@@ -249,6 +249,14 @@ textarea {
   text-overflow: ellipsis;
 }
 
+.participant-trigger {
+  cursor: pointer;
+}
+
+.participant-trigger:hover {
+  color: #111827;
+}
+
 .hot-flag {
   display: inline-flex;
   align-items: center;
@@ -569,11 +577,18 @@ textarea {
   gap: 0.5rem;
 }
 
+.like-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+}
+
 .like-button {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  margin-bottom: 0.75rem;
   border: 1px solid #e5e7eb;
   border-radius: 999px;
   background: #ffffff;
@@ -591,6 +606,12 @@ textarea {
 
 .like-icon {
   line-height: 1;
+}
+
+.like-names {
+  font-size: 0.8rem;
+  color: #6b7280;
+  line-height: 1.5;
 }
 
 .tree-actions {
@@ -1173,7 +1194,15 @@ textarea {
   .like-button {
     padding: 0.28rem 0.52rem;
     font-size: 0.7rem;
+  }
+
+  .like-row {
     margin-bottom: 0.5rem;
+    gap: 0.34rem;
+  }
+
+  .like-names {
+    font-size: 0.68rem;
   }
 
   .modal {

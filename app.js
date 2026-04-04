@@ -472,6 +472,13 @@ function bindEvents() {
     }
   });
 
+  document.getElementById("claims-list").addEventListener("dblclick", function (e) {
+    var trigger = e.target.closest("[data-action='open-participants']");
+    if (!trigger) return;
+    e.preventDefault();
+    openParticipantsModal(trigger.getAttribute("data-claim-id"));
+  });
+
   document.getElementById("claim-detail").addEventListener("click", function (e) {
     var link = e.target.closest("a[href]");
     if (link) {
@@ -543,6 +550,13 @@ function bindEvents() {
     }
   });
 
+  document.getElementById("claim-detail").addEventListener("dblclick", function (e) {
+    var trigger = e.target.closest("[data-action='open-participants']");
+    if (!trigger) return;
+    e.preventDefault();
+    openParticipantsModal(trigger.getAttribute("data-claim-id"));
+  });
+
   document.getElementById("close-modal-btn").addEventListener("click", closeModal);
   document.getElementById("modal-overlay").addEventListener("click", function (e) {
     if (e.target === document.getElementById("modal-overlay")) closeModal();
@@ -558,6 +572,7 @@ function bindEvents() {
     openTipsModal();
   });
   document.getElementById("close-tips-modal-btn").addEventListener("click", closeTipsModal);
+  document.getElementById("close-participants-modal-btn").addEventListener("click", closeParticipantsModal);
   document.getElementById("open-preview-external-btn").addEventListener("click", function () {
     if (!previewUrl) return;
     window.open(previewUrl, "_blank", "noopener,noreferrer");
@@ -571,6 +586,9 @@ function bindEvents() {
   document.getElementById("tips-modal-overlay").addEventListener("click", function (e) {
     if (e.target === document.getElementById("tips-modal-overlay")) closeTipsModal();
   });
+  document.getElementById("participants-modal-overlay").addEventListener("click", function (e) {
+    if (e.target === document.getElementById("participants-modal-overlay")) closeParticipantsModal();
+  });
 
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape") {
@@ -578,6 +596,7 @@ function bindEvents() {
       dismissActivityModal();
       closePreviewModal();
       closeTipsModal();
+      closeParticipantsModal();
     }
   });
 }
@@ -881,7 +900,7 @@ function renderClaimListCard(claim, isSelected) {
   return (
     '<button class="claim-list-card' + (isSelected ? " selected" : "") + '" data-action="select-claim" data-claim-id="' + escapeAttribute(claim.id) + '" type="button">' +
     '  <div class="claim-row">' +
-    '    <div class="claim-author">' + (isHot ? '<span class="hot-flag" aria-hidden="true">' + flameIconMarkup() + "</span>" : "") + escapeHtml(getDisplayNickname(claim.nickname)) + "</div>" +
+    '    <div class="claim-author participant-trigger" data-action="open-participants" data-claim-id="' + escapeAttribute(claim.id) + '">' + (isHot ? '<span class="hot-flag" aria-hidden="true">' + flameIconMarkup() + "</span>" : "") + escapeHtml(getDisplayNickname(claim.nickname)) + "</div>" +
     '    <div class="claim-goal"><span class="claim-divider">|</span> ' + formatLineClampText(claim.text || "(주장 미작성)") + "</div>" +
     '    <div class="claim-badges">' +
     '      <span class="mini-meta">근거 ' + evidenceCount + " · 반박 " + rebuttalCount + " · " + formatDashboardDate(claim.publishedAt || claim.createdAt) + "</span>" +
@@ -938,7 +957,7 @@ function renderPublishedClaimDetail(claim) {
     '    <div class="tree-main">' +
     '      <div class="tree-meta">' +
     '        <span class="chip claim">주장</span>' +
-    '        <span>' + escapeHtml(getDisplayNickname(claim.nickname)) + "</span>" +
+    '        <span class="participant-trigger" data-action="open-participants" data-claim-id="' + escapeAttribute(claim.id) + '">' + escapeHtml(getDisplayNickname(claim.nickname)) + "</span>" +
     '        <span>' + formatRelativeTime(claim.publishedAt || claim.createdAt) + "</span>" +
     '      </div>' +
     renderLikeButton("claim", claim.id) +
@@ -1007,7 +1026,7 @@ function renderRebuttalList(claim, rebuttals, isOwner, canRebut) {
       '    <div class="tree-main">' +
       '      <div class="tree-meta">' +
       '        <span class="chip rebuttal">반박</span>' +
-      '        <span>' + escapeHtml(getDisplayNickname(rebuttal.nickname)) + "</span>" +
+      '        <span class="participant-trigger" data-action="open-participants" data-claim-id="' + escapeAttribute(claim.id) + '">' + escapeHtml(getDisplayNickname(rebuttal.nickname)) + "</span>" +
       '        <span>' + formatRelativeTime(rebuttal.createdAt) + "</span>" +
       "      </div>" +
       renderLikeButton("rebuttal", rebuttal.id) +
@@ -1047,7 +1066,7 @@ function renderSurrebuttalList(claim, surrebuttals, isOwner) {
       '<article class="surrebuttal-item">' +
       '  <div class="tree-meta">' +
       '    <span class="chip surrebuttal">재반박</span>' +
-      '    <span>' + escapeHtml(getDisplayNickname(item.nickname)) + "</span>" +
+      '    <span class="participant-trigger" data-action="open-participants" data-claim-id="' + escapeAttribute(claim.id) + '">' + escapeHtml(getDisplayNickname(item.nickname)) + "</span>" +
       '    <span>' + formatRelativeTime(item.createdAt) + "</span>" +
       "  </div>" +
       renderLikeButton("surrebuttal", item.id) +
@@ -1188,6 +1207,25 @@ function openTipsModal() {
 
 function closeTipsModal() {
   document.getElementById("tips-modal-overlay").style.display = "none";
+}
+
+function openParticipantsModal(claimId) {
+  if (!claimId) return;
+  var summary = getClaimParticipantsSummary(claimId);
+  document.getElementById("participants-modal-title").textContent = "이 트리에 참여한 사람";
+  document.getElementById("participants-modal-body").innerHTML = summary.map(function (section) {
+    return (
+      '<div class="activity-item">' +
+      '  <div class="activity-item-title">' + escapeHtml(section.label) + "</div>" +
+      '  <div class="activity-item-copy">' + escapeHtml(section.names.length ? section.names.join(", ") : "없음") + "</div>" +
+      "</div>"
+    );
+  }).join("");
+  document.getElementById("participants-modal-overlay").style.display = "flex";
+}
+
+function closeParticipantsModal() {
+  document.getElementById("participants-modal-overlay").style.display = "none";
 }
 
 function getVisibleClaims() {
@@ -1462,6 +1500,53 @@ function getLikeCount(targetType, targetId) {
   return allLikes.filter(function (item) {
     return item.targetType === targetType && item.targetId === targetId;
   }).length;
+}
+
+function getLikeNicknames(targetType, targetId) {
+  return allLikes.filter(function (item) {
+    return item.targetType === targetType && item.targetId === targetId;
+  }).map(function (item) {
+    return getDisplayNickname(item.nickname);
+  });
+}
+
+function getClaimParticipantsSummary(claimId) {
+  var claim = allClaims.find(function (item) { return item.id === claimId; });
+  var rebuttals = getRebuttalsForClaim(claimId);
+  var surrebuttals = [];
+
+  rebuttals.forEach(function (rebuttal) {
+    surrebuttals = surrebuttals.concat(getSurrebuttalsForRebuttal(rebuttal.id));
+  });
+
+  var likeNames = uniqueNames(allLikes.filter(function (item) {
+    if (item.targetType === "claim" && item.targetId === claimId) return true;
+    if (item.targetType === "evidence" && claim && (claim.evidence || []).some(function (evidence) { return evidence.id === item.targetId; })) return true;
+    if (item.targetType === "rebuttal" && rebuttals.some(function (rebuttal) { return rebuttal.id === item.targetId; })) return true;
+    if (item.targetType === "surrebuttal" && surrebuttals.some(function (surrebuttal) { return surrebuttal.id === item.targetId; })) return true;
+    if (item.targetType === "persuasion" && allPersuasions.some(function (persuasion) { return persuasion.claimId === claimId && persuasion.id === item.targetId; })) return true;
+    return false;
+  }).map(function (item) {
+    return item.nickname;
+  }));
+
+  return [
+    { label: "주장 작성", names: uniqueNames([claim ? claim.nickname : ""]) },
+    { label: "반박 작성", names: uniqueNames(rebuttals.map(function (item) { return item.nickname; })) },
+    { label: "재반박 작성", names: uniqueNames(surrebuttals.map(function (item) { return item.nickname; })) },
+    { label: "좋아요 누름", names: likeNames },
+  ];
+}
+
+function uniqueNames(names) {
+  var seen = {};
+  return (names || []).map(function (name) {
+    return getDisplayNickname(name);
+  }).filter(function (name) {
+    if (!name || seen[name]) return false;
+    seen[name] = true;
+    return true;
+  });
 }
 
 function getTreeLikeCount(claimId) {
@@ -1743,11 +1828,17 @@ function normalizeClaimSide(side) {
 function renderLikeButton(targetType, targetId) {
   var count = getLikeCount(targetType, targetId);
   var liked = isLikedByMe(targetType, targetId);
+  var names = getLikeNicknames(targetType, targetId);
   return (
-    '<button class="like-button' + (liked ? " active" : "") + '" data-action="toggle-like" data-target-type="' + escapeAttribute(targetType) + '" data-target-id="' + escapeAttribute(targetId) + '" type="button">' +
-    '  <span class="like-icon" aria-hidden="true">' + thumbsUpIconMarkup() + "</span>" +
-    '  <span>좋아요 ' + count + "</span>" +
-    "</button>"
+    '<div class="like-row">' +
+    '  <button class="like-button' + (liked ? " active" : "") + '" data-action="toggle-like" data-target-type="' + escapeAttribute(targetType) + '" data-target-id="' + escapeAttribute(targetId) + '" type="button">' +
+    '    <span class="like-icon" aria-hidden="true">' + thumbsUpIconMarkup() + "</span>" +
+    '    <span>좋아요 ' + count + "</span>" +
+    "  </button>" +
+    (names.length
+      ? '  <span class="like-names">' + escapeHtml(names.join(", ")) + "</span>"
+      : "") +
+    "</div>"
   );
 }
 
