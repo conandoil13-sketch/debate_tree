@@ -334,6 +334,13 @@ function bindEvents() {
     renderClaims();
   });
 
+  document.getElementById("claim-search-input").addEventListener("keydown", function (e) {
+    var value = (e.target.value || "").trim();
+    if (e.key !== "Enter" || value !== "1004") return;
+    e.preventDefault();
+    openSiteSummaryModal();
+  });
+
   document.getElementById("sort-select").addEventListener("change", function (e) {
     markPrimaryAction();
     sortMode = e.target.value || "latest";
@@ -1228,6 +1235,20 @@ function closeParticipantsModal() {
   document.getElementById("participants-modal-overlay").style.display = "none";
 }
 
+function openSiteSummaryModal() {
+  var summary = getSiteSummarySections();
+  document.getElementById("participants-modal-title").textContent = "현재 사이트 참여 현황";
+  document.getElementById("participants-modal-body").innerHTML = summary.map(function (section) {
+    return (
+      '<div class="activity-item">' +
+      '  <div class="activity-item-title">' + escapeHtml(section.label) + "</div>" +
+      '  <div class="activity-item-copy">' + escapeHtml(section.copy) + "</div>" +
+      "</div>"
+    );
+  }).join("");
+  document.getElementById("participants-modal-overlay").style.display = "flex";
+}
+
 function getVisibleClaims() {
   var claims = allClaims.filter(function (claim) { return claim.published; });
 
@@ -1535,6 +1556,56 @@ function getClaimParticipantsSummary(claimId) {
     { label: "반박 작성", names: uniqueNames(rebuttals.map(function (item) { return item.nickname; })) },
     { label: "재반박 작성", names: uniqueNames(surrebuttals.map(function (item) { return item.nickname; })) },
     { label: "좋아요 누름", names: likeNames },
+  ];
+}
+
+function getSiteSummarySections() {
+  var claimAuthors = uniqueNames(allClaims.map(function (item) { return item.nickname; }));
+  var rebuttalAuthors = uniqueNames(allRebuttals.map(function (item) { return item.nickname; }));
+  var surrebuttalAuthors = uniqueNames(allSurrebuttals.map(function (item) { return item.nickname; }));
+  var persuasionAuthors = uniqueNames(allPersuasions.map(function (item) { return item.nickname; }));
+  var likeUsers = uniqueNames(allLikes.map(function (item) { return item.nickname; }));
+  var allParticipants = uniqueNames(
+    claimAuthors
+      .concat(rebuttalAuthors)
+      .concat(surrebuttalAuthors)
+      .concat(persuasionAuthors)
+      .concat(likeUsers)
+  );
+
+  return [
+    {
+      label: "참여자 수",
+      copy: String(allParticipants.length) + "명",
+    },
+    {
+      label: "참여한 사람",
+      copy: allParticipants.length ? allParticipants.join(", ") : "아직 집계된 참여자가 없습니다.",
+    },
+    {
+      label: "주장 작성",
+      copy: claimAuthors.length ? claimAuthors.join(", ") : "없음",
+    },
+    {
+      label: "반박 작성",
+      copy: rebuttalAuthors.length ? rebuttalAuthors.join(", ") : "없음",
+    },
+    {
+      label: "재반박 작성",
+      copy: surrebuttalAuthors.length ? surrebuttalAuthors.join(", ") : "없음",
+    },
+    {
+      label: "설득된 정도 작성",
+      copy: persuasionAuthors.length ? persuasionAuthors.join(", ") : "없음",
+    },
+    {
+      label: "좋아요 누름",
+      copy: likeUsers.length ? likeUsers.join(", ") : "없음",
+    },
+    {
+      label: "상호작용 없이 나간 사람",
+      copy: "현재 이 사이트는 payload에 남은 상호작용 기록만 읽기 때문에, 들어오기만 하고 아무 행동도 하지 않은 사람은 구분할 수 없습니다.",
+    },
   ];
 }
 
