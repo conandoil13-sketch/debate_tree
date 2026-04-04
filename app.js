@@ -589,7 +589,7 @@ function hydrateShell(info) {
   document.getElementById("app").style.display = "block";
   document.getElementById("message").style.display = "none";
   document.getElementById("debate-title").textContent = info.title || "(제목 없음)";
-  document.getElementById("nickname").textContent = "익명 사용자";
+  document.getElementById("nickname").textContent = getDisplayNickname(info.nickname);
   document.getElementById("status-copy").textContent = canParticipate
     ? "내 주장과 근거를 정리해 업로드한 뒤, 공개 트리에서 오가는 반박이 사람들의 판단을 어떻게 바꾸는지 볼 수 있습니다."
     : "읽기 전용 상태입니다. 공개된 주장과 반박 흐름 속에서 어떤 논리가 마음을 움직이는지 확인할 수 있습니다.";
@@ -881,7 +881,7 @@ function renderClaimListCard(claim, isSelected) {
   return (
     '<button class="claim-list-card' + (isSelected ? " selected" : "") + '" data-action="select-claim" data-claim-id="' + escapeAttribute(claim.id) + '" type="button">' +
     '  <div class="claim-row">' +
-    '    <div class="claim-author">' + (isHot ? '<span class="hot-flag" aria-hidden="true">' + flameIconMarkup() + "</span>" : "") + getAnonymousLabel() + "</div>" +
+    '    <div class="claim-author">' + (isHot ? '<span class="hot-flag" aria-hidden="true">' + flameIconMarkup() + "</span>" : "") + escapeHtml(getDisplayNickname(claim.nickname)) + "</div>" +
     '    <div class="claim-goal"><span class="claim-divider">|</span> ' + formatLineClampText(claim.text || "(주장 미작성)") + "</div>" +
     '    <div class="claim-badges">' +
     '      <span class="mini-meta">근거 ' + evidenceCount + " · 반박 " + rebuttalCount + " · " + formatDashboardDate(claim.publishedAt || claim.createdAt) + "</span>" +
@@ -938,7 +938,7 @@ function renderPublishedClaimDetail(claim) {
     '    <div class="tree-main">' +
     '      <div class="tree-meta">' +
     '        <span class="chip claim">주장</span>' +
-    '        <span>' + getAnonymousLabel() + "</span>" +
+    '        <span>' + escapeHtml(getDisplayNickname(claim.nickname)) + "</span>" +
     '        <span>' + formatRelativeTime(claim.publishedAt || claim.createdAt) + "</span>" +
     '      </div>' +
     renderLikeButton("claim", claim.id) +
@@ -1007,7 +1007,7 @@ function renderRebuttalList(claim, rebuttals, isOwner, canRebut) {
       '    <div class="tree-main">' +
       '      <div class="tree-meta">' +
       '        <span class="chip rebuttal">반박</span>' +
-      '        <span>' + getAnonymousLabel() + "</span>" +
+      '        <span>' + escapeHtml(getDisplayNickname(rebuttal.nickname)) + "</span>" +
       '        <span>' + formatRelativeTime(rebuttal.createdAt) + "</span>" +
       "      </div>" +
       renderLikeButton("rebuttal", rebuttal.id) +
@@ -1047,7 +1047,7 @@ function renderSurrebuttalList(claim, surrebuttals, isOwner) {
       '<article class="surrebuttal-item">' +
       '  <div class="tree-meta">' +
       '    <span class="chip surrebuttal">재반박</span>' +
-      '    <span>' + getAnonymousLabel() + "</span>" +
+      '    <span>' + escapeHtml(getDisplayNickname(item.nickname)) + "</span>" +
       '    <span>' + formatRelativeTime(item.createdAt) + "</span>" +
       "  </div>" +
       renderLikeButton("surrebuttal", item.id) +
@@ -1195,7 +1195,8 @@ function getVisibleClaims() {
 
   if (claimSearchQuery) {
     claims = claims.filter(function (claim) {
-      return (claim.text || "").toLowerCase().indexOf(claimSearchQuery) >= 0;
+      return (claim.text || "").toLowerCase().indexOf(claimSearchQuery) >= 0 ||
+        getDisplayNickname(claim.nickname).toLowerCase().indexOf(claimSearchQuery) >= 0;
     });
   }
 
@@ -1727,8 +1728,8 @@ function formatDashboardDate(timestamp) {
   return yy + "." + mm + "." + dd + " " + hh + ":" + min + ampm;
 }
 
-function getAnonymousLabel() {
-  return "익명 사용자";
+function getDisplayNickname(nickname) {
+  return nickname || "사용자";
 }
 
 function getClaimSideLabel(side) {
