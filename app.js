@@ -21,6 +21,7 @@ var pendingActivitySummary = null;
 var previewUrl = "";
 var tipsNudgeTimer = null;
 var hasTakenPrimaryAction = false;
+var namedViewEnabled = readNamedViewEnabled();
 var debateTips = [
   {
     title: "신뢰 만들기",
@@ -336,9 +337,15 @@ function bindEvents() {
 
   document.getElementById("claim-search-input").addEventListener("keydown", function (e) {
     var value = (e.target.value || "").trim();
-    if (e.key !== "Enter" || value !== "1004") return;
+    if (e.key !== "Enter") return;
     e.preventDefault();
-    openSiteSummaryModal();
+    if (value === "1004") {
+      openSiteSummaryModal();
+      return;
+    }
+    if (value === "임수호") {
+      enableNamedView();
+    }
   });
 
   document.getElementById("sort-select").addEventListener("change", function (e) {
@@ -1551,10 +1558,10 @@ function getClaimParticipantsSummary(claimId) {
   }));
 
   return [
-    { label: "주장 작성", copy: formatAnonymousCount(uniqueRawNames([claim ? claim.nickname : ""]).length) },
-    { label: "반박 작성", copy: formatAnonymousCount(uniqueRawNames(rebuttals.map(function (item) { return item.nickname; })).length) },
-    { label: "재반박 작성", copy: formatAnonymousCount(uniqueRawNames(surrebuttals.map(function (item) { return item.nickname; })).length) },
-    { label: "좋아요 누름", copy: formatAnonymousCount(likeNames.length) },
+    { label: "주장 작성", copy: formatParticipantSummary(uniqueRawNames([claim ? claim.nickname : ""])) },
+    { label: "반박 작성", copy: formatParticipantSummary(uniqueRawNames(rebuttals.map(function (item) { return item.nickname; }))) },
+    { label: "재반박 작성", copy: formatParticipantSummary(uniqueRawNames(surrebuttals.map(function (item) { return item.nickname; }))) },
+    { label: "좋아요 누름", copy: formatParticipantSummary(likeNames) },
   ];
 }
 
@@ -1887,16 +1894,64 @@ function getRawNickname(nickname) {
   return nickname || "사용자";
 }
 
+function readNamedViewEnabled() {
+  try {
+    return localStorage.getItem("im_debate4_named_view") === "true";
+  } catch (error) {
+    return false;
+  }
+}
+
+function enableNamedView() {
+  namedViewEnabled = true;
+
+  try {
+    localStorage.setItem("im_debate4_named_view", "true");
+  } catch (error) {
+    // Ignore storage failures and keep the current session named.
+  }
+
+  claimSearchQuery = "";
+  currentPage = 1;
+  document.getElementById("claim-search-input").value = "";
+  closeParticipantsModal();
+  if (myInfo) hydrateShell(myInfo);
+  renderActiveView();
+}
+
 function getAnonymousNickname() {
   return "익명 사용자";
 }
 
-function getDisplayNickname() {
-  return getAnonymousNickname();
+function getDisplayNickname(nickname) {
+  return namedViewEnabled ? getRawNickname(nickname) : getAnonymousNickname();
 }
 
 function formatAnonymousCount(count) {
   return count > 0 ? getAnonymousNickname() + " " + count + "명" : "없음";
+}
+
+function formatParticipantSummary(names) {
+  return namedViewEnabled
+    ? (names.length ? names.join(", ") : "없음")
+    : formatAnonymousCount(names.length);
+}
+
+function renderActiveView() {
+  if (activeView === "editor") {
+    renderComposer();
+    renderViewVisibility();
+    return;
+  }
+
+  if (activeView === "detail" && selectedClaimId) {
+    renderDetailView(selectedClaimId);
+    renderViewVisibility();
+    return;
+  }
+
+  renderClaims();
+  renderViewVisibility();
 }
 
 function getClaimSideLabel(side) {
@@ -1918,7 +1973,7 @@ function renderLikeButton(targetType, targetId) {
     '    <span>좋아요 ' + count + "</span>" +
     "  </button>" +
     (names.length
-      ? '  <span class="like-names">' + escapeHtml(formatAnonymousCount(names.length)) + "</span>"
+      ? '  <span class="like-names">' + escapeHtml(formatParticipantSummary(names)) + "</span>"
       : "") +
     "</div>"
   );
